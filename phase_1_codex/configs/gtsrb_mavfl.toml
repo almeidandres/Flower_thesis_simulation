@@ -1,0 +1,14 @@
+num-server-rounds = 5
+strategy = "mavfl"
+task = "gtsrb_lenet"
+use-fake-data = false
+fraction-train = 0.5
+fraction-evaluate = 0.5
+local-epochs = 1
+learning-rate = 0.01
+ucb-exploration = 1.0
+ucb-discount = 0.9
+mavfl-alpha = 0.6
+num-selected = 5
+vehicle-speed-kmh = 60.0
+train-samples-per-client = 600

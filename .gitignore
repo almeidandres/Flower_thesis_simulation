@@ -1,0 +1,29 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Claude local settings
+.claude/settings.local.json
+
+# Datasets
+phase_1_codex/datasets/
+
+# Model artifacts
+*.pt
+*.pth
+*.pkl
+phase_1_codex/artifacts/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/

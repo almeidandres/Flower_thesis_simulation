@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "phase1-codex"
+version = "0.1.0"
+description = "Phase 1 Flower + PyTorch baseline and MAVFL scaffold"
+license = "Apache-2.0"
+dependencies = [
+    "flwr[simulation]>=1.26.1",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["phase1_flower"]
+
+[tool.flwr.app]
+publisher = "niki"
+
+[tool.flwr.app.components]
+serverapp = "phase1_flower.server_app:app"
+clientapp = "phase1_flower.client_app:app"
+
+[tool.flwr.app.config]
+num-server-rounds = 3
+fraction-train = 0.5
+fraction-evaluate = 0.5
+min-train-nodes = 2
+min-evaluate-nodes = 2
+min-available-nodes = 2
+num-clients = 10
+strategy = "fedavg"
+ucb-exploration = 1.0
+ucb-discount = 0.9
+mavfl-alpha = 0.6
+num-selected = 5
+local-epochs = 1
+learning-rate = 0.01
+batch-size = 32
+task = "cifar10_resnet18"
+use-fake-data = true
+train-samples-per-client = 600
+eval-samples-per-client = 64
+seed = 42
+road-length-m = 1000.0
+road-loop-m = 1000.0
+num-zones = 20
+bs-height-m = 25.0
+vehicle-speed-kmh = 60.0
+mobility-time-step-s = 1.0
+idm-max-accel = 1.5
+idm-comfort-decel = 2.0
+idm-min-gap = 2.0
+idm-time-headway = 1.5
+idm-accel-exponent = 4.0
+bandwidth-hz = 3000000.0
+tx-power-db = 23.0
+noise-power-db = -114.0
+bs-antenna-gain-db = 6.0
+path-loss-a = 128.1
+path-loss-b = 37.6
+gpu-frequency-ghz = 1.3
+gpu-cycles-per-bit = 1.0
+compute-normalization = 1.0
+
+
+#######################################################################
+# CONFIGURATION MIGRATION NOTICE:
+#
+# What was previously called "federation config" for SuperLink
+# connections in pyproject.toml has been renamed and moved.
+#
+# These settings are now **SuperLink connection configuration**
+# and are defined in the Flower configuration file.
+#
+# The entries below are commented out intentionally and are kept
+# only as a migration reference.
+#
+# Docs: https://flower.ai/docs/framework/ref-flower-configuration.html
+#######################################################################
+
+# [tool.flwr.federations]
+# default = "local-sim"
+
+# [tool.flwr.federations.local-sim]
+# options.num-supernodes = 10
+# options.backend.client-resources.num-cpus = 1
+# options.backend.client-resources.num-gpus = 0
