@@ -286,17 +286,37 @@ class IDMRoadMobility:
         self._activate_arrivals(duration_s)
 
     def predict_position(self, node_id: int, duration_s: float) -> float:
-        """Predict position after duration_s using constant-speed extrapolation.
+        """Predict position after duration_s using IDM integration on a cloned state.
+
+        Uses the same IDM physics as ``advance()`` so that dropout prediction is
+        consistent with the actual mobility simulation.  The real vehicle state is
+        not modified — integration runs on a temporary copy.
 
         Returns road_length_m + 1 for exited or unknown vehicles so that
         callers treating position > road_length_m as "exited" work correctly.
         """
         if node_id not in self._states:
             return self.road_length_m + 1.0
-        state = self._states[node_id]
+        real_state = self._states[node_id]
         if duration_s <= 0.0:
-            return state.position_m
-        return state.position_m + state.speed_mps * duration_s
+            return real_state.position_m
+
+        # Clone just this vehicle's kinematics; treat it as a free-road leader
+        # (no vehicle ahead) so the prediction is self-contained and doesn't
+        # depend on other vehicles' future positions.
+        pos = real_state.position_m
+        spd = real_state.speed_mps
+
+        steps = max(1, int(math.ceil(duration_s / self.time_step_s)))
+        dt = duration_s / steps
+        for _ in range(steps):
+            accel = self._idm_accel(spd, gap=self.road_length_m, delta_v=0.0)
+            spd = max(0.0, spd + accel * dt)
+            pos += spd * dt
+            if pos >= self.road_length_m:
+                return pos  # already exited
+
+        return pos
 
     def positions(self, node_ids: list[int]) -> dict[int, float]:
         """Return current positions for the given node_ids.
