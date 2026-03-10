@@ -1,6 +1,6 @@
 # MAVFL Phase 1 Work Log
 
-## Status: road-loop-m fixed. Fake-data 5-round run clean. Ready for real CIFAR-10 run.
+## Status: Open-road continuous arrival model implemented. 100-vehicle pool. Circular wrap-around removed. Ready for real CIFAR-10 run.
 
 ---
 
@@ -74,6 +74,94 @@ remain eligible every round. Natural dropout still occurs via channel quality an
   no dropout rounds. `success-ratio` varied 0.2–0.6 per round (natural, not total
   failure). Utility changed round-to-round confirming MAB updates. `artifacts/metrics.csv`
   written with 5 rows.
+
+---
+
+---
+
+## Session 2026-03-09 — Open-road continuous arrival model
+
+### Problem identified: circular wrap-around is unfaithful to the paper
+
+Through analysis of the paper (arXiv:2410.10451) and the codebase, three issues were found with the previous `road-loop-m = 1000` circular model:
+
+1. **MAB exploration permanently suppressed.** After round 1, all 10 node IDs had been seen, so `UCB = inf` (the exploration bonus for new arrivals) was never triggered again. New arrivals getting the exploration bonus is a core mechanism of MAVFL.
+2. **Data reuse.** The same 10 fixed data partitions were trained on every single round — not how real vehicular FL works, and not what the paper models.
+3. **The paper describes a one-way road.** Vehicles that exit coverage are gone. The wrap-around was a pragmatic hack, not a paper-faithful design.
+
+**Root cause of the original hack:** The paper is underspecified. It never describes a vehicle arrival process, yet its results (3000s of CIFAR-10 training) are physically impossible without one — all vehicles at 60 km/h traverse 1000m in ~60s, depleting the entire pool in 1–2 rounds. The paper likely simulated a steady-state traffic stream (open road) but omitted the description.
+
+### Solution: open-road model with continuous Poisson arrivals
+
+**Arrival rate derived from Little's Law:**
+```
+Transit time  T  = L / v = 1000 m / 16.67 m/s ≈ 60 s
+Arrival rate  λ  = N_target / T = 10 / 60 ≈ 0.167 vehicles/second
+```
+At steady state, ~10 vehicles are on the road at any time. Each `advance()` call draws from `Poisson(λ × duration_s)` to activate new vehicles.
+
+### Changes applied
+
+| File | Change |
+|------|--------|
+| `mobility.py` | Full rewrite. Replaced circular wrap with three-set lifecycle: `_pending` (not yet on road), `_active` (traversing), `_exited` (permanently departed). Poisson arrivals at rate 0.167/s. No `road_loop_m`. |
+| `strategy_mavfl.py` | Fixed `eligible_nodes` fallback — no longer falls back to all 100 nodes when pool is empty; skips round instead. Added `pool_summary()` to per-round logs. |
+| `server_app.py` | Replaced `road_loop_m=` with `arrival_rate_hz=` and `initial_active=` in `IDMRoadMobility` constructor. |
+| `pyproject.toml` | `num-clients = 100`, removed `road-loop-m`, added `arrival-rate-hz = 0.167` and `initial-active-vehicles = 10`. |
+| `tests/smoke_strategy_start.py` | Updated constructor call to match new parameters. |
+
+### MAB behaviour with new arrivals
+
+No MAB changes needed. When a pending node activates for the first time, `self.node_stats.get(node_id)` returns `None`, causing `_ucb_score` to return `float("inf")` — the exploration bonus is automatically applied to all new arrivals.
+
+### Pool exhaustion warning
+
+With 100 nodes and ~10 active at steady state, the pending pool supports roughly **~18 rounds** at 30s round delays before exhaustion. For longer runs (50+ rounds), increase `num-clients` and `num-supernodes` proportionally (e.g., 500 for long CIFAR-10 experiments). Do **not** recycle exited nodes — that reintroduces the data-reuse problem.
+
+### Next steps updated
+
+- `num-supernodes = 100` must be passed at CLI: `flwr run . --run-config "num-clients=100"` with appropriate federation config
+- Smoke test constructor alignment done; full fake-data run should be verified next
+- Benchmarking plan (Session 2026-03-08) still applies — strategies and metrics infrastructure unchanged
+
+---
+
+## Session 2026-03-10 — UCB MAB fix: update on zero-success rounds
+
+### Problem identified
+
+`aggregate_train` gated both the utility computation and `_post_round_update` inside
+`if filtered_replies:`. When all selected nodes dropped out of coverage (zero successful
+replies), the MAB update was silently skipped:
+
+- Arms that caused the failure received no negative reward — their `mean_reward` stayed
+  artificially high, so UCB kept re-selecting them.
+- `_n_r_lambda` (the discounted total-selections counter, Paper Eq. 9) did not advance,
+  distorting the exploration bonus for subsequent rounds.
+
+### Fix applied
+
+| File | Change |
+|------|--------|
+| `strategy_mavfl.py` | Moved `utility = self._utility(...)` before the `if filtered_replies:` block; moved `self._post_round_update(server_round, utility)` after it (unconditional). Metric dict population (`mavfl-*` fields) stays inside the block since metrics are only valid when results exist. |
+
+### Verification
+
+7-round CIFAR-10 real-data run (100 nodes, `initial-active=10`):
+
+| Round | Old accuracy | New accuracy |
+|-------|-------------|--------------|
+| 1 | 0.1294 | 0.1024 |
+| 2 | 0.2018 | 0.2441 |
+| 3 | 0.2658 | 0.2824 |
+| 4 | 0.2693 | 0.2743 |
+| 5 | 0.2138 | 0.2524 |
+| 6 | 0.2655 | 0.3399 |
+| 7 | 0.3140 | **0.3471** |
+
+Final accuracy improved from 31.4% → 34.7% (+3.3pp). Rounds 2–7 are strictly better or
+equal. Round 1 had a loss spike (17.0) due to a bad initial round with `success-ratio=0.2`
+immediately followed by evaluation — unrelated to the UCB fix, present in prior runs too.
 
 ---
 

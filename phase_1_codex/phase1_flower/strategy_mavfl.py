@@ -89,8 +89,31 @@ class MobilitySelectionStrategy(FedAvg):
         self.data_bits_per_client = data_bits_per_client
         self._rng = random.Random(seed)
         self._round_state: RoundState | None = None
-        self._min_delay: float | None = None
-        self._max_delay: float | None = None
+
+        # Pre-compute theoretical T_min / T_max from channel parameters (Paper Eq. 6).
+        # T_min: all selected nodes in the centre zone (minimum distance to BS).
+        # T_max: one selected node in the outer zone (maximum distance to BS).
+        # Using nominal selection_size for bandwidth-per-node so the bounds are stable.
+        bw_per_node = delay_params.bandwidth_hz / max(selection_size, 1)
+        compute_time_s = (
+            data_bits_per_client
+            * delay_params.gpu_cycles_per_bit
+            / max(delay_params.compute_normalization * delay_params.gpu_frequency_ghz * 1e9, 1e-9)
+        )
+        dist_min = mobility.distance_to_bs(mobility.road_length_m / 2.0)   # centre of road
+        dist_max = mobility.distance_to_bs(0.0)                             # entry / exit end
+        rate_at_min = _uplink_rate(
+            dist_min, bw_per_node,
+            delay_params.tx_power_dbm, delay_params.noise_power_dbm,
+            delay_params.bs_antenna_gain_db, delay_params.path_loss_a, delay_params.path_loss_b,
+        )
+        rate_at_max = _uplink_rate(
+            dist_max, bw_per_node,
+            delay_params.tx_power_dbm, delay_params.noise_power_dbm,
+            delay_params.bs_antenna_gain_db, delay_params.path_loss_a, delay_params.path_loss_b,
+        )
+        self._tmin: float = model_size_bits / max(rate_at_min, 1e-9) + compute_time_s
+        self._tmax: float = model_size_bits / max(rate_at_max, 1e-9) + compute_time_s
 
     def _select_nodes(self, eligible: list[int], server_round: int) -> list[int]:
         raise NotImplementedError
@@ -150,7 +173,13 @@ class MobilitySelectionStrategy(FedAvg):
 
         eligible_nodes = self.mobility.eligible_nodes(all_nodes)
         if not eligible_nodes:
-            eligible_nodes = all_nodes
+            log(
+                INFO,
+                "configure_train: no eligible nodes on road (pool: %s); skipping round %d",
+                self.mobility.pool_summary(),
+                server_round,
+            )
+            return []
 
         sample_size = min(self.selection_size, len(eligible_nodes))
         selected_nodes = self._select_nodes(eligible_nodes, server_round)[:sample_size]
@@ -162,33 +191,22 @@ class MobilitySelectionStrategy(FedAvg):
         self._round_state = self._compute_round_state(
             server_round, all_nodes, eligible_nodes, selected_nodes
         )
-        if self._round_state.round_delay_s > 0.0:
-            self._min_delay = (
-                self._round_state.round_delay_s
-                if self._min_delay is None
-                else min(self._min_delay, self._round_state.round_delay_s)
-            )
-            self._max_delay = (
-                self._round_state.round_delay_s
-                if self._max_delay is None
-                else max(self._max_delay, self._round_state.round_delay_s)
-            )
 
         record = RecordDict({self.arrayrecord_key: arrays, self.configrecord_key: config})
         log(
             INFO,
-            "configure_train: selected %d/%d eligible nodes (%d total)",
+            "configure_train: selected %d/%d eligible nodes (%d total, pool: %s)",
             len(selected_nodes),
             len(eligible_nodes),
             len(all_nodes),
+            self.mobility.pool_summary(),
         )
         return list(self._construct_messages(record, selected_nodes, MessageType.TRAIN))
 
     def _utility(self, success_ratio: float, round_delay_s: float) -> float:
-        if self._min_delay is None or self._max_delay is None or self._max_delay <= self._min_delay:
-            normalized_delay = 0.0
-        else:
-            normalized_delay = (round_delay_s - self._min_delay) / (self._max_delay - self._min_delay)
+        # Paper Eq. 6: normalise using theoretical channel-model bounds (fixed).
+        normalized_delay = (round_delay_s - self._tmin) / max(self._tmax - self._tmin, 1e-9)
+        normalized_delay = max(0.0, min(1.0, normalized_delay))
         return self.alpha * success_ratio - (1.0 - self.alpha) * normalized_delay
 
     def _post_round_update(self, server_round: int, utility: float) -> None:
@@ -211,6 +229,10 @@ class MobilitySelectionStrategy(FedAvg):
             msg for msg in valid_replies if msg.metadata.src_node_id in state.success_nodes
         ]
 
+        # Always compute utility so UCB arms receive negative feedback on failed rounds
+        # (paper Eq. 8: all selected arms get the round utility, including p^r=0 cases)
+        utility = self._utility(state.success_ratio, state.round_delay_s)
+
         arrays: ArrayRecord | None = None
         metrics: MetricRecord | None = None
         if filtered_replies:
@@ -222,13 +244,12 @@ class MobilitySelectionStrategy(FedAvg):
             arrays = aggregate_arrayrecords(reply_contents, self.weighted_by_key)
             metrics = aggregate_metricrecords(reply_contents, self.weighted_by_key)
 
-            utility = self._utility(state.success_ratio, state.round_delay_s)
             metrics["mavfl-round-delay-s"] = state.round_delay_s
             metrics["mavfl-success-ratio"] = state.success_ratio
             metrics["mavfl-utility"] = utility
             metrics["mavfl-round"] = float(server_round)
 
-            self._post_round_update(server_round, utility)
+        self._post_round_update(server_round, utility)
 
         if state.round_delay_s > 0.0:
             self.mobility.advance(state.round_delay_s, state.all_nodes)
@@ -250,6 +271,7 @@ class MAVFLStrategy(MobilitySelectionStrategy):
         self.ucb_discount = ucb_discount
         self.ucb_exploration = ucb_exploration
         self.node_stats: dict[int, dict[str, float]] = {}
+        self._n_r_lambda: float = 0.0  # Paper Eq. 9: discounted total selections before this round
 
     def _ucb_score(self, node_id: int, total_pulls: float) -> float:
         stats = self.node_stats.get(node_id)
@@ -265,7 +287,8 @@ class MAVFLStrategy(MobilitySelectionStrategy):
         if server_round == 1:
             return self._rng.sample(eligible, k=min(self.selection_size, len(eligible)))
 
-        total_pulls = sum(stats["count"] for stats in self.node_stats.values()) + 1.0
+        # Paper Eq. 9: n(r, λ) — discounted total selections accumulator.
+        total_pulls = max(self._n_r_lambda, 1.0)
         scored = [(node_id, self._ucb_score(node_id, total_pulls)) for node_id in eligible]
         scored.sort(key=lambda item: item[1], reverse=True)
         return [node_id for node_id, _ in scored[: self.selection_size]]
@@ -278,11 +301,14 @@ class MAVFLStrategy(MobilitySelectionStrategy):
         state = self._round_state
         if state is None:
             return
+        # Paper Eq. 9: n(r+1, λ) = n(r, λ) * λ + |S_r|
+        self._n_r_lambda = self._n_r_lambda * self.ucb_discount + len(state.selected_nodes)
+        # Paper Eq. 8: all selected arms receive the round utility (success info is
+        # already encoded in utility via the success_ratio term).
         for node_id in state.selected_nodes:
             stats = self.node_stats.setdefault(node_id, {"count": 0.0, "utility_sum": 0.0})
             stats["count"] += 1.0
-            node_utility = utility if node_id in state.success_nodes else 0.0
-            stats["utility_sum"] += node_utility
+            stats["utility_sum"] += utility
 
 
 class CBSStrategy(MobilitySelectionStrategy):

@@ -91,7 +91,6 @@ def run_mavfl_smoke() -> None:
     mobility = IDMRoadMobility(
         seed=42,
         road_length_m=1000.0,
-        road_loop_m=2000.0,
         num_zones=20,
         bs_height_m=25.0,
         desired_speed_kmh=60.0,
@@ -101,6 +100,8 @@ def run_mavfl_smoke() -> None:
         time_headway_s=1.5,
         accel_exponent=4.0,
         time_step_s=1.0,
+        arrival_rate_hz=0.167,
+        initial_active=5,
     )
     delay_params = DelayParams(
         bandwidth_hz=3_000_000.0,

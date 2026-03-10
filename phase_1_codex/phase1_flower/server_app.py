@@ -53,7 +53,6 @@ def _make_strategy(context: Context, model_size_bits: float, data_bits_per_clien
     mobility = IDMRoadMobility(
         seed=int(context.run_config["seed"]),
         road_length_m=float(context.run_config["road-length-m"]),
-        road_loop_m=float(context.run_config["road-loop-m"]),
         num_zones=int(context.run_config["num-zones"]),
         bs_height_m=float(context.run_config["bs-height-m"]),
         desired_speed_kmh=float(context.run_config["vehicle-speed-kmh"]),
@@ -63,6 +62,8 @@ def _make_strategy(context: Context, model_size_bits: float, data_bits_per_clien
         time_headway_s=float(context.run_config["idm-time-headway"]),
         accel_exponent=float(context.run_config["idm-accel-exponent"]),
         time_step_s=float(context.run_config["mobility-time-step-s"]),
+        arrival_rate_hz=float(context.run_config["arrival-rate-hz"]),
+        initial_active=int(context.run_config["initial-active-vehicles"]),
     )
     delay_params = DelayParams(
         bandwidth_hz=float(context.run_config["bandwidth-hz"]),

@@ -24,14 +24,15 @@ serverapp = "phase1_flower.server_app:app"
 clientapp = "phase1_flower.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 3
+num-server-rounds = 70
 fraction-train = 0.5
 fraction-evaluate = 0.5
 min-train-nodes = 2
 min-evaluate-nodes = 2
 min-available-nodes = 2
-num-clients = 10
-strategy = "fedavg"
+num-clients = 100
+#strategy = "fedavg"
+strategy = "mavfl"
 ucb-exploration = 1.0
 ucb-discount = 0.9
 mavfl-alpha = 0.6
@@ -40,12 +41,11 @@ local-epochs = 1
 learning-rate = 0.01
 batch-size = 32
 task = "cifar10_resnet18"
-use-fake-data = true
+use-fake-data = false
 train-samples-per-client = 600
 eval-samples-per-client = 64
 seed = 42
 road-length-m = 1000.0
-road-loop-m = 1000.0
 num-zones = 20
 bs-height-m = 25.0
 vehicle-speed-kmh = 60.0
@@ -55,6 +55,13 @@ idm-comfort-decel = 2.0
 idm-min-gap = 2.0
 idm-time-headway = 1.5
 idm-accel-exponent = 4.0
+# UCB exploit/explore regime (arXiv:2410.10451 Algorithm 1).
+# Constraint: E[new arrivals per round] << K0 = 5.
+# Old value (0.167) matched Little's Law steady-state → E[arrivals] = 0.167*30s = 5.0 = K0,
+# all slots taken by inf-UCB newcomers (UCB=inf), exploitation never triggered.
+# New: lambda=0.05 → E[arrivals]=~1.5/round, leaving ~3-4 slots for finite-UCB vehicles.
+arrival-rate-hz = 0.05
+initial-active-vehicles = 10
 bandwidth-hz = 3000000.0
 tx-power-db = 23.0
 noise-power-db = -114.0

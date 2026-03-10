@@ -34,7 +34,7 @@ All code must strictly follow Flower conventions:
 
 ## Paper Reconstruction Context
 
-The paper being reconstructed is: https://doi.org/10.48550/arXiv.2410.10451
+The paper being reconstructed is: https://doi.org/10.48550/arXiv.2410.10451, available locally for reference at `/Users/niki/Local_Docs/College/flower_test/PDFs/MAVFL_paper.pdf`.
 
 When implementing components from this paper:
 1. Read and understand the specific algorithm, aggregation method, or FL technique described.
