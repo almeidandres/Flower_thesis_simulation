@@ -1,14 +1,15 @@
 # Flower AI Prime Coder Memory
 
 ## Project Structure
-- Main implementation: `/Users/niki/Local_Docs/College/flower_test/phase_1_codex/`
-- Quickstart reference: `/Users/niki/Local_Docs/College/flower_test/quickstart-pytorch/`
-- Skills/agent config: `/Users/niki/Local_Docs/College/flower_test/skills/flower-ai-agent/`
-- Project plan: `skills/flower-ai-agent/references/project-plan.md`
+- Main implementation: `experiments/phase1/`
+- Quickstart reference: `references/quickstart-pytorch/`
+- Skills/agent config: `ai/skills/flower-ai-agent/`
+- Project plan: `ai/skills/flower-ai-agent/references/project-plan.md`
+- Project docs: `docs/` (`docs/worklog.md`, `docs/mavfl-ucb-strategy.md`)
 
 ## Flower Version & API
-- Flower 1.26.1 installed in `venv/` (at `/Users/niki/Local_Docs/College/flower_test/venv/`)
-- **Activate venv**: `cd /Users/niki/Local_Docs/College/flower_test && source venv/bin/activate`, then `cd phase_1_codex`
+- Flower dependency floor in `experiments/phase1/pyproject.toml`: `flwr[simulation]>=1.26.1`
+- Preferred local workflow now uses `uv` from `experiments/phase1/`
 - Uses NEW app-based API: `ServerApp`, `ClientApp`, `Grid`, `Message`, `RecordDict`
 - Imports: `flwr.app`, `flwr.serverapp`, `flwr.clientapp`, `flwr.common`
 - Strategy base: `flwr.serverapp.strategy.FedAvg` with `.start()` loop
@@ -50,5 +51,5 @@
 - HIGH: Data partitioning -- real CIFAR-10 gives ~500 samples/client with 100 nodes via round-robin, paper uses exactly 600
 
 ## Pending Work
-- Convergence benchmarking plan: see `phase_1_codex/WORKLOG.md` (Session 2026-03-08)
+- Convergence benchmarking plan: see `docs/worklog.md` (Session 2026-03-08)
 - Pool exhaustion: with 100 nodes and Poisson arrivals, pool depletes in ~30-40 rounds. For long runs (>50 rounds), either increase pool size or consider recycling exited nodes with fresh MAB stats.

@@ -8,13 +8,13 @@ __pycache__/
 .claude/settings.local.json
 
 # Datasets
-phase_1_codex/datasets/
+experiments/phase1/datasets/
 
 # Model artifacts
 *.pt
 *.pth
 *.pkl
-phase_1_codex/artifacts/
+experiments/phase1/artifacts/
 
 # Python packaging
 *.egg-info/

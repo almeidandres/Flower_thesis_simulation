@@ -1,4 +1,4 @@
-# Phase 1 Codex (Fresh Implementation)
+# Phase 1 Experiment
 
 Fresh Flower Phase 1 implementation built from scratch for:
 - Week 1: reproducible baseline (Flower + PyTorch, strategy.start smoke run)
@@ -23,9 +23,15 @@ This project is pinned in `pyproject.toml`:
 - `phase1_flower/task.py`: Training/evaluation routines
 - `configs/*.toml`: run-config variants for baseline and MAVFL scenarios
 
+Related docs:
+
+- `../../docs/mavfl-ucb-strategy.md`: detailed paper-to-code notes for the MAVFL/UCB selection logic
+- `../../docs/worklog.md`: implementation history and experiment notes
+- `../../docs/session-wrap-up-2026-03-10.md`: handoff note from the latest reconstruction pass
+
 ## Quickstart
 
-From `phase_1_codex`:
+From `experiments/phase1`:
 
 ```bash
 ./scripts/smoke_week1.sh
@@ -40,7 +46,7 @@ MAVFL smoke run:
 To run with the Flower CLI simulation launcher:
 
 ```bash
-../venv/bin/flwr run . --run-config "num-server-rounds=2 strategy='mavfl' use-fake-data=false"
+uv run flwr run . --run-config "num-server-rounds=2 strategy='mavfl' use-fake-data=false"
 ```
 
 ## Week 3 Scenario Configs
@@ -51,14 +57,14 @@ To run with the Flower CLI simulation launcher:
 Run with:
 
 ```bash
-../venv/bin/flwr run . --run-config configs/cifar10_mavfl.toml
-../venv/bin/flwr run . --run-config configs/gtsrb_mavfl.toml
+uv run flwr run . --run-config configs/cifar10_mavfl.toml
+uv run flwr run . --run-config configs/gtsrb_mavfl.toml
 ```
 
 Baselines (match the paper):
 
 ```bash
-../venv/bin/flwr run . --run-config "num-server-rounds=5 strategy='cbs' use-fake-data=false"
-../venv/bin/flwr run . --run-config "num-server-rounds=5 strategy='rbs' use-fake-data=false"
-../venv/bin/flwr run . --run-config "num-server-rounds=5 strategy='random' use-fake-data=false"
+uv run flwr run . --run-config "num-server-rounds=5 strategy='cbs' use-fake-data=false"
+uv run flwr run . --run-config "num-server-rounds=5 strategy='rbs' use-fake-data=false"
+uv run flwr run . --run-config "num-server-rounds=5 strategy='random' use-fake-data=false"
 ```

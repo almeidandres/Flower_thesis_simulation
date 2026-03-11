@@ -3,7 +3,7 @@
     "allow": [
       "WebFetch(domain:doi.org)",
       "WebFetch(domain:arxiv.org)",
-      "Bash(/Users/niki/Local_Docs/College/flower_test/venv/bin/python:*)",
+      "Bash(/home/AndresAlmeida/panda/niki-thesis/experiments/phase1/.venv/bin/python:*)",
       "Bash(python3:*)"
     ]
   }

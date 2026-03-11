@@ -13,32 +13,32 @@ Make the Phase 1 implementation align with the MAVFL paper (arXiv:2410.10451), u
 
 ## What changed (files)
 
-- `phase_1_codex/phase1_flower/mobility.py`
+- `experiments/phase1/phase1_flower/mobility.py`
   - New `IDMRoadMobility` with road segment length 1000m and loop length 2000m.
   - Zone-based distance to BS (20 zones, BS height 25m).
   - Time-to-exit and mobility advance per round.
-- `phase_1_codex/phase1_flower/strategy_mavfl.py`
+- `experiments/phase1/phase1_flower/strategy_mavfl.py`
   - New mobility-aware strategy base.
   - MAVFL UCB selection with discount + utility (`alpha * p^r − (1−alpha) * normalized_delay`).
   - Baseline strategies: `CBSStrategy`, `RBSStrategy`, `RandomStrategy`.
   - Success ratio computed server-side; updates only from “successful” vehicles.
-- `phase_1_codex/phase1_flower/client_app.py`
+- `experiments/phase1/phase1_flower/client_app.py`
   - Removed synthetic delay/reward from clients.
   - Clients now return only train/eval metrics.
-- `phase_1_codex/phase1_flower/server_app.py`
+- `experiments/phase1/phase1_flower/server_app.py`
   - Strategy factory supports `mavfl`, `cbs`, `rbs`, `random`.
   - Computes model size bits and per-client data bits.
   - Injects IDM + channel parameters via run config.
-- `phase_1_codex/pyproject.toml`
+- `experiments/phase1/pyproject.toml`
   - Added MAVFL parameters and mobility/channel defaults:
     - `num-selected`, `mavfl-alpha`, `ucb-discount`, IDM params, road lengths, OFDMA params, compute params.
-- `phase_1_codex/configs/cifar10_mavfl.toml`
+- `experiments/phase1/configs/cifar10_mavfl.toml`
   - `use-fake-data = false`, added `ucb-discount`, `mavfl-alpha`, `num-selected`, `vehicle-speed-kmh`.
-- `phase_1_codex/configs/gtsrb_mavfl.toml`
+- `experiments/phase1/configs/gtsrb_mavfl.toml`
   - Same as CIFAR config.
-- `phase_1_codex/README.md`
+- `experiments/phase1/README.md`
   - Updated to include baselines and real-data runs.
-- `phase_1_codex/tests/smoke_strategy_start.py`
+- `experiments/phase1/tests/smoke_strategy_start.py`
   - Updated to new mobility + delay params (still in-process smoke).
 
 ## Why `flwr run .` failed in the sandbox
@@ -48,7 +48,7 @@ Make the Phase 1 implementation align with the MAVFL paper (arXiv:2410.10451), u
 
 ## How to run proper end-to-end sims
 
-From `phase_1_codex`:
+From `experiments/phase1`:
 
 ```bash
 ../venv/bin/pip install -e .

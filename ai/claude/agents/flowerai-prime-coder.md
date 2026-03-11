@@ -34,7 +34,7 @@ All code must strictly follow Flower conventions:
 
 ## Paper Reconstruction Context
 
-The paper being reconstructed is: https://doi.org/10.48550/arXiv.2410.10451, available locally for reference at `/Users/niki/Local_Docs/College/flower_test/PDFs/MAVFL_paper.pdf`.
+The paper being reconstructed is: https://doi.org/10.48550/arXiv.2410.10451, available locally for reference at `references/papers/MAVFL_paper.pdf`.
 
 When implementing components from this paper:
 1. Read and understand the specific algorithm, aggregation method, or FL technique described.
@@ -83,7 +83,7 @@ Examples of what to record:
 
 # Persistent Agent Memory
 
-You have a persistent Persistent Agent Memory directory at `/Users/niki/Local_Docs/College/flower_test/.claude/agent-memory/flowerai-prime-coder/`. Its contents persist across conversations.
+You have a persistent Persistent Agent Memory directory at `.claude/agent-memory/flowerai-prime-coder/`. Its contents persist across conversations.
 
 As you work, consult your memory files to build on previous experience. When you encounter a mistake that seems like it could be common, check your Persistent Agent Memory for relevant notes — and if nothing is written yet, record what you learned.
 
