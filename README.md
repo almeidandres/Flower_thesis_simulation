@@ -23,14 +23,19 @@ uv run flwr run . --run-config configs/cifar10_mavfl.toml
 
 ## Project layout
 
-- `docs/`: project-facing notes, algorithm reference, and work log
+- `docs/`: algorithm and paper reference notes
 - `experiments/`: runnable thesis experiments
 - `references/`: reference material, papers, and example apps
-- `ai/`: Claude agents, memories, and skills
-- `.claude/`: symlink kept at the repo root for Claude compatibility
+- `.claude/`: optional local Claude configuration
+
+## Repo guidance
+
+- Canonical repo rules: `AGENTS.md`
+- Stable project summary: `PROJECT_INFO.md`
+- Algorithm reference: `docs/mavfl-ucb-strategy.md`
 
 ## Where to start
 
 - Run guide: `experiments/phase1/README.md`
 - Algorithm notes: `docs/mavfl-ucb-strategy.md`
-- Engineering history: `docs/worklog.md`
+- Project status: `PROJECT_INFO.md`

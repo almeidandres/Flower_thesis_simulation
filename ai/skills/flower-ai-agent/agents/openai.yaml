@@ -1,4 +1,0 @@
-interface:
-  display_name: "Flower Agent"
-  short_description: "Flower app build/debug agent with docs-first checks."
-  default_prompt: "Use this skill for Flower.ai tasks. Check current Flower docs before coding, then implement, run checks, and summarize results."

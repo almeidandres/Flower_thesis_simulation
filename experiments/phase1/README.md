@@ -17,7 +17,7 @@ This project is pinned in `pyproject.toml`:
 - `phase1_flower/server_app.py`: Server orchestration, strategy selection, centralized eval
 - `phase1_flower/client_app.py`: Client train/evaluate message handlers
 - `phase1_flower/strategy_mavfl.py`: Mobility-aware strategies (MAVFL + CBS/RBS/Random baselines)
-- `phase1_flower/mobility.py`: Simplified road-segment mobility/coverage model
+- `phase1_flower/mobility.py`: Open-road mobility and coverage model
 - `phase1_flower/models.py`: ResNet-18 and LeNet model builders
 - `phase1_flower/data.py`: Dataset partition loading with fake-data fallback
 - `phase1_flower/task.py`: Training/evaluation routines
@@ -26,8 +26,7 @@ This project is pinned in `pyproject.toml`:
 Related docs:
 
 - `../../docs/mavfl-ucb-strategy.md`: detailed paper-to-code notes for the MAVFL/UCB selection logic
-- `../../docs/worklog.md`: implementation history and experiment notes
-- `../../docs/session-wrap-up-2026-03-10.md`: handoff note from the latest reconstruction pass
+- `../../PROJECT_INFO.md`: current project status, implementation summary, and run context
 
 ## Quickstart
 
